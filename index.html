@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI交易系统监控</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .card-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .status-value {
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .signal-buy {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .signal-sell {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .signal-hold {
+            color: #3b82f6;
+            font-weight: bold;
+        }
+        
+        .confidence-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            padding: 20px;
+        }
+        
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #dc2626;
+            margin-bottom: 20px;
+        }
+        
+        .update-time {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+        
+        .pulse {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .trade-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .trade-side-buy {
+            border-left-color: #10b981;
+        }
+        
+        .trade-side-sell {
+            border-left-color: #ef4444;
+        }
+        
+        @media (max-width: 768px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🤖 AI交易系统监控</h1>
+            <p>实时状态监控 - 移动端优化</p>
+        </header>
+
+        <div id="errorContainer"></div>
+
+        <!-- 系统状态卡片 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-icon">📊</span>
+                <div class="card-title">系统状态</div>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">运行状态</span>
+                    <span class="status-value" id="systemStatus">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">最近分析</span>
+                    <span class="status-value" id="recentAnalyses">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">最后更新</span>
+                    <span class="status-value" id="lastUpdate">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI信号卡片 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-icon">🤖</span>
+                <div class="card-title">AI交易信号</div>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">当前信号</span>
+                    <span class="status-value" id="signalType">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">置信度</span>
+                    <div>
+                        <span class="status-value" id="confidenceValue">-</span>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">建议仓位</span>
+                    <span class="status-value" id="suggestedSize">-</span>
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <div class="status-label">分析理由:</div>
+                <div id="reasoning" style="margin-top: 8px; color: #4a5568; line-height: 1.5; font-size: 0.95rem;"></div>
+            </div>
+        </div>
+
+        <!-- 最近交易卡片 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-icon">💸</span>
+                <div class="card-title">最近交易</div>
+            </div>
+            <div id="tradesContainer">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+
+        <div class="update-time">
+            <span class="pulse"></span>实时更新: <span id="updateTime">-</span>
+        </div>
+    </div>
+
+    <script>
+        // API基础URL - 替换为你的Vercel部署地址
+        const API_BASE_URL = 'https://vercel.com/docs/projects/overview#project-name';
+        
+        // 格式化时间
+        function formatTime(isoString) {
+            if (!isoString) return 'N/A';
+            const date = new Date(isoString);
+            return date.toLocaleString('zh-CN');
+        }
+        
+        function formatRelativeTime(isoString) {
+            if (!isoString) return 'N/A';
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return '刚刚';
+            if (diffMins < 60) return `${diffMins}分钟前`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}小时前`;
+            return formatTime(isoString);
+        }
+        
+        // 更新页面数据
+        async function updateData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/status`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('errorContainer').innerHTML = `
+                        <div class="error">❌ ${data.error}</div>
+                    `;
+                    return;
+                }
+                
+                // 清除错误
+                document.getElementById('errorContainer').innerHTML = '';
+                
+                // 更新系统状态
+                document.getElementById('systemStatus').innerHTML = 
+                    `<span style="color: #10b981;">●</span> 运行中`;
+                document.getElementById('recentAnalyses').textContent = 
+                    `${data.recent_analyses || 0}次/小时`;
+                document.getElementById('lastUpdate').textContent = 
+                    formatRelativeTime(data.timestamp);
+                
+                // 更新AI信号
+                const signal = data.ai_signal;
+                const signalElement = document.getElementById('signalType');
+                signalElement.textContent = signal.signal;
+                signalElement.className = `signal-${signal.signal.toLowerCase()}`;
+                
+                const confidence = (signal.confidence * 100).toFixed(1);
+                document.getElementById('confidenceValue').textContent = `${confidence}%`;
+                document.getElementById('confidenceBar').style.width = `${confidence}%`;
+                
+                document.getElementById('suggestedSize').textContent = signal.suggested_size;
+                document.getElementById('reasoning').textContent = signal.reasoning;
+                
+                // 更新最近交易
+                if (data.latest_trade) {
+                    const trade = data.latest_trade;
+                    const tradeClass = trade.side === 'buy' ? 'trade-side-buy' : 'trade-side-sell';
+                    
+                    document.getElementById('tradesContainer').innerHTML = `
+                        <div class="trade-item ${tradeClass}">
+                            <div>
+                                <strong>${trade.side.toUpperCase()}</strong> ${trade.symbol}
+                            </div>
+                            <div>
+                                ${trade.size} @ ${formatRelativeTime(trade.time)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('tradesContainer').innerHTML = 
+                        '<div class="loading">暂无交易记录</div>';
+                }
+                
+                // 更新最后刷新时间
+                document.getElementById('updateTime').textContent = 
+                    new Date().toLocaleTimeString('zh-CN');
+                
+            } catch (error) {
+                console.error('获取数据失败:', error);
+                document.getElementById('errorContainer').innerHTML = `
+                    <div class="error">❌ 连接API失败: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // 页面加载时立即更新
+        document.addEventListener('DOMContentLoaded', function() {
+            updateData();
+            // 每30秒自动更新
+            setInterval(updateData, 30000);
+        });
+    </script>
+</body>
+</html>
